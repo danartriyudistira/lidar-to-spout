@@ -123,6 +123,23 @@ bentuk **rectangle** atau **polygon**, dan hanya tampil sebagai overlay di previ
   yang tampil di proyektor hanya area trigger itu. Tombol `Spout: kembali ke seluruh ruang`
   untuk membatalkan. Berlaku untuk rectangle maupun polygon.
 - Semua area tersimpan di `config.json` (`areas.items`) saat `Simpan config` / `S`.
+
+### Visual titik (raw + berkedip)
+
+Di panel **Visual**:
+
+| Parameter | Arti |
+|---|---|
+| `Gaya titik` | `Glow (halus)` = titik bercahaya + halo; `Raw (titik tajam)` = titik kecil tanpa halo, seperti point cloud mentah |
+| `Titik berkedip` | aktifkan efek kedip |
+| `Mode kedip` | `Strobe` = titik menyala/mati acak (klasik radar); `Twinkle` = alpha berdenyut halus per titik |
+| `Kecepatan kedip (Hz)` | 1–30, seberapa cepat pola kedip berganti |
+| `Kedalaman kedip` | 0 = tidak redup, 1 = benar-benar hilang saat mati |
+| `Kepadatan titik` | fraksi titik yang ikut berkedip |
+
+Peta background (ruangan statis) tidak ikut berkedip supaya ruang tetap terbaca.
+Untuk look paling "raw": `Gaya titik: Raw`, `Trail` dimatikan, `Sweep`/`Grid` opsional,
+`Kepadatan` 0.4–0.6.
 - **Nilai live** tampil di panel dan di label preview: jumlah orang di area `(7)`.
   Data per area juga dikirim via OSC (lihat bagian OSC).
 

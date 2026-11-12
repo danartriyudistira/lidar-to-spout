@@ -62,20 +62,32 @@ class SceneRenderer:
         bg_alpha: float = 0.10,
         bg_size: float = 5.0,
         lines: list | None = None,
+        alphas: np.ndarray | None = None,
+        raw: bool = False,
+        point_power: float = 2.0,
         background: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
     ) -> moderngl.Framebuffer:
         ctx = self.ctx
         res = (float(self.w), float(self.h))
 
+        def draw_points(halo: bool) -> None:
+            self.points.clear()
+            n = len(pts_px)
+            for i in range(n):
+                x, y = float(pts_px[i][0]), float(pts_px[i][1])
+                a = float(alphas[i]) if alphas is not None and i < len(alphas) else point_alpha
+                if a <= 0.0:
+                    continue
+                if halo:
+                    self.points.add(x, y, point_size * 3.2, color, a * 0.18)
+                self.points.add(x, y, point_size, color, a)
+            self.points.draw(res, power=point_power)
+
         # --- 1. akumulasi trail (opsional) ---
         if trail_enabled:
             self.trail.begin(trail_decay)
             ctx.viewport = (0, 0, self.w, self.h)
-            self.points.clear()
-            for x, y in pts_px:
-                self.points.add(float(x), float(y), point_size * 3.2, color, point_alpha * 0.18)
-                self.points.add(float(x), float(y), point_size, color, point_alpha)
-            self.points.draw(res)
+            draw_points(halo=not raw)
 
         # --- 2. output pass ---
         self.out_fbo.use()
@@ -118,11 +130,7 @@ class SceneRenderer:
             self.points.draw(res)
 
         if not trail_enabled:
-            self.points.clear()
-            for x, y in pts_px:
-                self.points.add(float(x), float(y), point_size * 3.2, color, point_alpha * 0.18)
-                self.points.add(float(x), float(y), point_size, color, point_alpha)
-            self.points.draw(res)
+            draw_points(halo=not raw)
 
         return self.out_fbo
 

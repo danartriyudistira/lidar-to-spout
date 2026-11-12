@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import glfw  # noqa: E402
+import numpy as np  # noqa: E402
 
 from app import App, parse_args  # noqa: E402
 from config import DEFAULTS  # noqa: E402
@@ -176,6 +177,23 @@ def main():
         check("spout disable melepas sender", app.spout_beauty.enabled is False)
         app.spout_beauty.set_enabled(True)
         check("spout enable kembali", app.spout_beauty.enabled is True)
+
+        # 9. efek titik berkedip (raw point)
+        app.cfg["style"].update({"blink": True, "blink_mode": "strobe", "blink_rate_hz": 12.0,
+                                 "blink_depth": 1.0, "blink_density": 0.5})
+        a1 = app._blink_alphas(200, 1.00)
+        a3 = app._blink_alphas(200, 1.02)   # seed sama (int(now*12) = 12)
+        a2 = app._blink_alphas(200, 1.09)   # seed beda (int(now*12) = 13)
+        check("blink: panjang & rentang alpha",
+              a1 is not None and len(a1) == 200 and float(a1.min()) >= 0.0 and float(a1.max()) <= 1.0)
+        check("blink: stabil dalam satu tick", np.array_equal(a1, a3))
+        check("blink: berubah di tick berikutnya", not np.array_equal(a1, a2))
+        app.cfg["style"]["blink_mode"] = "twinkle"
+        t1 = app._blink_alphas(50, 1.0)
+        t2 = app._blink_alphas(50, 1.2)
+        check("twinkle: alpha berubah halus", t1 is not None and not np.array_equal(t1, t2))
+        app.cfg["style"]["blink"] = False
+        check("blink nonaktif -> None", app._blink_alphas(10, 1.0) is None)
     finally:
         app.shutdown()
 

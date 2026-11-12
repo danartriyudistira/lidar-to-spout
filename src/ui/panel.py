@@ -274,6 +274,31 @@ def draw_panel(cfg: dict, status: dict) -> dict:
     ch, val = imgui.slider_float("Alpha titik", float(st.get("point_alpha", 0.9)), 0.0, 1.0, "%.2f")
     if ch:
         st["point_alpha"] = val
+    styles = ["glow", "raw"]
+    cur_style = str(st.get("point_style", "glow"))
+    sidx = 0 if cur_style == "glow" else 1
+    ch, val = imgui.combo("Gaya titik", sidx, ["Glow (halus)", "Raw (titik tajam)"])
+    if ch:
+        st["point_style"] = styles[val]
+    ch, val = imgui.checkbox("Titik berkedip", bool(st.get("blink", False)))
+    if ch:
+        st["blink"] = val
+    if st.get("blink"):
+        modes = ["strobe", "twinkle"]
+        cur_mode = str(st.get("blink_mode", "strobe"))
+        midx = 0 if cur_mode == "strobe" else 1
+        ch, val = imgui.combo("Mode kedip", midx, ["Strobe (on/off acak)", "Twinkle (halus)"])
+        if ch:
+            st["blink_mode"] = modes[val]
+        ch, val = imgui.slider_float("Kecepatan kedip (Hz)", float(st.get("blink_rate_hz", 12.0)), 1.0, 30.0, "%.1f")
+        if ch:
+            st["blink_rate_hz"] = val
+        ch, val = imgui.slider_float("Kedalaman kedip", float(st.get("blink_depth", 0.9)), 0.0, 1.0, "%.2f")
+        if ch:
+            st["blink_depth"] = val
+        ch, val = imgui.slider_float("Kepadatan titik", float(st.get("blink_density", 0.55)), 0.05, 1.0, "%.2f")
+        if ch:
+            st["blink_density"] = val
     ch, val = imgui.checkbox("Trail", bool(st.get("trail_enabled", True)))
     if ch:
         st["trail_enabled"] = val

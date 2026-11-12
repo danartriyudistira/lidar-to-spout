@@ -83,6 +83,7 @@ class App:
         self.area_metrics: dict[int, dict] = {}
         self._area_prev_ids: dict[int, set[int]] = {}
         self._area_events: list[tuple[str, int, int]] = []
+        self._blink_phase: np.ndarray | None = None
 
         self._init_window()
         self._init_gl()
@@ -818,6 +819,32 @@ class App:
             cursors.append((int(t.id), u, v, speed_norm, float(t.size / room_w)))
         self.tuio.send(cursors)
 
+    def _blink_alphas(self, n: int, now: float):
+        """Alpha per titik untuk efek berkedip (raw point look)."""
+        st = self.cfg["style"]
+        if not st.get("blink", False) or n <= 0:
+            return None
+        base = float(st.get("point_alpha", 0.9))
+        depth = max(0.0, min(1.0, float(st.get("blink_depth", 0.9))))
+        density = max(0.0, min(1.0, float(st.get("blink_density", 0.55))))
+        rate = max(0.5, float(st.get("blink_rate_hz", 12.0)))
+        mode = str(st.get("blink_mode", "strobe"))
+
+        if mode == "twinkle":
+            if self._blink_phase is None or len(self._blink_phase) < n:
+                rng = np.random.default_rng(1234)
+                self._blink_phase = rng.random(max(4096, n))
+            phase = self._blink_phase[:n]
+            wave = 0.5 - 0.5 * np.cos(2.0 * np.pi * (now * rate + phase))
+            factor = 1.0 - depth * wave
+            factor = np.where(phase < density, factor, 1.0)
+        else:  # strobe: on/off acak, diperbarui `rate` kali per detik
+            rng = np.random.default_rng(int(now * rate) & 0x7FFFFFFF)
+            mask = rng.random(n) < density
+            factor = np.where(mask, 1.0, 1.0 - depth)
+
+        return (factor * base).astype("f4")
+
     def _render_frame(self, snap) -> None:
         cfg = self.cfg
         style = cfg["style"]
@@ -861,6 +888,9 @@ class App:
         pts_px = self.mapping.world_to_canvas(np.array(world) if world else np.zeros((0, 2)))
         bg_pts_px = self.mapping.world_to_canvas(np.array(bg_world) if bg_world else np.zeros((0, 2)))
         self.points_total = len(world)
+
+        raw_points = str(style.get("point_style", "glow")) == "raw"
+        alphas = self._blink_alphas(len(pts_px), now)
 
         if self.args.debug and self.frame_count % 30 == 0:
             pr = f"x[{pts_px[:,0].min():.0f},{pts_px[:,0].max():.0f}] y[{pts_px[:,1].min():.0f},{pts_px[:,1].max():.0f}]" if len(pts_px) else "kosong"
@@ -907,6 +937,9 @@ class App:
             bg_alpha=float(style.get("bg_point_alpha", 0.12)),
             bg_size=float(style.get("bg_point_size", 5.0)),
             lines=self._overlay_lines(),
+            alphas=alphas,
+            raw=raw_points,
+            point_power=0.65 if raw_points else 2.0,
             background=bg,
         )
         self.spout_beauty.send(fbo)
