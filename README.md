@@ -193,7 +193,7 @@ Di Resolume: `Preferences → OSC` aktif, lalu map parameter/clip ke alamat di a
 | `Gagal membuka COM4 ... Access denied` | port dipakai app lain (mis. `LIDARLOMBOK_BARU.exe`, YDLidarViewer). Tutup dulu. |
 | `LIDAR: TIDAK ADA DATA`, paket 0 | kabel TX/RX terbalik, GND tidak nyambung, atau LiDAR belum dapat 5 V. |
 | Paket rusak (`rusak` naik) | baud salah / kabel terlalu panjang / noise motor — pakai kabel pendek, pastikan ground. |
-| Gambar terbalik/mirror | ubah `Heading` di Stage, `Mirror Y (scan)`, atau `spout.invert`. |
+| Gambar terbalik/mirror | preview dan Spout selalu sama orientasinya. Kalau terhadap ruangan nyata terbalik: ubah `Mirror Y (scan)` atau `Heading` (keduanya menutup semua orientasi). |
 | Skala terlihat gepeng | aspek kanvas ≠ aspek ruang: ganti `Fit` ke `Fit`, atau aspek ke `Auto`. |
 | Banyak track palsu | belajar ulang background saat ruangan kosong, naikkan toleransi bg. |
 | Track hilang saat orang diam | turunkan `Keluar (rev)` atau naikkan `Masuk (rev)` → lebih toleran. |
@@ -224,6 +224,7 @@ tools/
   record.py              rekam serial ke .bin + statistik
   make_demo.py           buat rekaman demo sintetis (tanpa hardware)
   spout_receiver_test.py cek sender Spout benar-benar mengirim frame
+  spout_capture.py       simpan satu frame Spout ke PNG (cek orientasi/isi)
   osc_listen_test.py     dengarkan pesan OSC
   tuio_listen_test.py    dengarkan bundle TUIO 2Dcur
   debug_background.py    analisa background model dari rekaman

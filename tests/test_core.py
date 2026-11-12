@@ -192,6 +192,14 @@ def test_config_migration() -> None:
           f"{c}")
 
 
+def test_preview_orientation_flag() -> None:
+    print("orientasi preview")
+    src = (ROOT / "src" / "app.py").read_text(encoding="utf-8")
+    idx = src.find("draw_preview")
+    call = src[idx:idx + 220] if idx >= 0 else ""
+    check("preview memakai flip_y=False (sama dengan Spout)", "flip_y=False" in call, call[:80])
+
+
 def main() -> int:
     test_protocol()
     test_stage()
@@ -200,6 +208,7 @@ def main() -> int:
     test_background()
     test_osc_tuio()
     test_config_migration()
+    test_preview_orientation_flag()
     print(f"\n{PASS} lulus, {FAIL} gagal")
     return 0 if FAIL == 0 else 1
 

@@ -956,7 +956,7 @@ class App:
                 self.ctx.viewport = (0, 0, fb_w, fb_h)
                 self.ctx.clear(0.02, 0.02, 0.025, 1.0)
                 rx, ry, rw, rh = self._preview_rect(fb_w, fb_h)
-                self.scene.draw_preview((rx, fb_h - ry - rh, rw, rh), flip_y=True)
+                self.scene.draw_preview((rx, fb_h - ry - rh, rw, rh), flip_y=False)
                 if self.edit_quad:
                     self._handle_quad_drag(fb_w, fb_h)
                 else:
