@@ -14,7 +14,7 @@ def draw_panel(cfg: dict, status: dict) -> dict:
     """Gambar panel. Mengembalikan aksi yang diminta user."""
     actions = {"save": False, "reconnect": False, "reset": False, "quit": False, "edit_quad": False}
 
-    imgui.set_next_window_size(min(460, imgui.get_io().display_size[0] - 20),
+    imgui.set_next_window_size(max(180, min(460, imgui.get_io().display_size[0] - 20)),
                                max(200, imgui.get_io().display_size[1] - 20), imgui.FIRST_USE_EVER)
     imgui.set_next_window_position(10, 10, imgui.FIRST_USE_EVER)
     expanded, opened = imgui.begin("Lidar To Spout", True)

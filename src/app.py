@@ -77,6 +77,9 @@ class App:
         self._mapper_sig = None
         self._resize_at = 0.0
         self._resize_to: tuple[int, int] | None = None
+        self._osc_sig = None
+        self._tuio_sig = None
+        self._filter_sig = None
         self.area_metrics: dict[int, dict] = {}
         self._area_prev_ids: dict[int, set[int]] = {}
         self._area_events: list[tuple[str, int, int]] = []
@@ -159,18 +162,23 @@ class App:
                              enabled=bool(osc_cfg.get("enabled", True)))
         self._osc_interval = 1.0 / max(1.0, float(osc_cfg.get("rate_hz", 30)))
         self._osc_last = 0.0
+        self._osc_sig = (bool(osc_cfg.get("enabled", True)), str(osc_cfg.get("host", "127.0.0.1")),
+                         int(osc_cfg.get("port", 9000)), float(osc_cfg.get("rate_hz", 30)))
 
         tuio_cfg = cfg["tuio"]
         self.tuio = TuioSender(tuio_cfg.get("host", "127.0.0.1"), tuio_cfg.get("port", 3333),
                                enabled=bool(tuio_cfg.get("enabled", True)))
         self._tuio_interval = 1.0 / max(1.0, float(tuio_cfg.get("rate_hz", 30)))
         self._tuio_last = 0.0
+        self._tuio_sig = (bool(tuio_cfg.get("enabled", True)), str(tuio_cfg.get("host", "127.0.0.1")),
+                          int(tuio_cfg.get("port", 3333)), float(tuio_cfg.get("rate_hz", 30)))
 
         self.mapping = make_mapper(cfg, self.canvas_w, self.canvas_h, self._output_crop_rect())
         self._mapper_sig = self._stage_signature()
         f = cfg["filter"]
         self.background = BackgroundModel(int(f.get("bins", 720)), float(f.get("tol_m", 0.12)),
                                           int(f.get("learn_revs", 3)))
+        self._filter_sig = (int(f.get("bins", 720)), int(f.get("learn_revs", 3)))
         self._learn_until = 0.0
         if f.get("enabled", True) and f.get("auto_learn", True):
             self._learn_until = time.perf_counter() + float(f.get("learn_seconds", 4.0))
@@ -185,9 +193,16 @@ class App:
         cfg = self.cfg["serial"]
         replay = cfg.get("replay_file") or ""
         if replay:
-            self.source = ReplaySource(replay, baud=int(cfg.get("baud", 115200)),
+            path = Path(replay)
+            if not path.is_absolute() and not path.exists():
+                base = (Path(sys.executable).resolve().parent
+                        if getattr(sys, "frozen", False) else SRC_DIR.parent)
+                candidate = base / replay
+                if candidate.exists():
+                    path = candidate
+            self.source = ReplaySource(path, baud=int(cfg.get("baud", 115200)),
                                        speed=float(cfg.get("replay_speed", 1.0)), loop=True)
-            print(f"[source] replay {replay} @ {cfg.get('replay_speed', 1.0)}x")
+            print(f"[source] replay {path} @ {cfg.get('replay_speed', 1.0)}x")
         else:
             self.source = SerialSource(cfg.get("port", "COM4"), int(cfg.get("baud", 115200)))
             print(f"[source] serial {cfg.get('port')} @ {cfg.get('baud')}")
@@ -257,7 +272,7 @@ class App:
             self._resize_to = None
 
         sig = self._stage_signature()
-        if sig != self._mapper_sig:
+        if sig != self._mapper_sig and not (self.area_editor.busy or self._drag_lidar):
             self._mapper_sig = sig
             self.mapping = make_mapper(self.cfg, self.canvas_w, self.canvas_h, self._output_crop_rect())
 
@@ -547,8 +562,6 @@ class App:
         down = glfw.get_mouse_button(self.win, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS
         tried = down and not self._mouse_prev
         try:
-            if self.impl.io.want_capture_mouse:
-                return
             (cx, cy), inside = self._cursor_canvas(fb_w, fb_h)
             room_arr = self.mapping.canvas_to_room([[cx, cy]])[0]
             room = (float(room_arr[0]), float(room_arr[1]))
@@ -559,11 +572,14 @@ class App:
             ctrl = (glfw.get_key(self.win, glfw.KEY_LEFT_CONTROL) == glfw.PRESS
                     or glfw.get_key(self.win, glfw.KEY_RIGHT_CONTROL) == glfw.PRESS)
 
+            if self.impl.io.want_capture_mouse:
+                tried = False  # jangan mulai interaksi baru saat kursor di panel
+
             consumed = False
-            if inside:
+            if inside or self._mouse_prev:
                 consumed = self._handle_area_input(room, (cx, cy), down, tried, ctrl, shift)
-                if not consumed and not self.area_editor.busy:
-                    self._handle_marker_drag(room, (cx, cy), down, tried, alt, shift)
+            if (inside or not down) and not consumed and not self.area_editor.busy:
+                self._handle_marker_drag(room, (cx, cy), down, tried, alt, shift)
         finally:
             self._mouse_prev = down
 
@@ -661,6 +677,55 @@ class App:
             self._area_prev_ids[area.id] = current
         self.area_metrics = metrics
 
+    def _sync_outputs(self) -> None:
+        o = self.cfg["osc"]
+        sig = (bool(o.get("enabled", True)), str(o.get("host", "127.0.0.1")),
+               int(o.get("port", 9000)), float(o.get("rate_hz", 30)))
+        if sig != self._osc_sig:
+            self._osc_sig = sig
+            try:
+                self.osc.close()
+            except Exception:
+                pass
+            self.osc = OscSender(sig[1], sig[2], enabled=sig[0])
+            self._osc_interval = 1.0 / max(1.0, sig[3])
+
+        t = self.cfg["tuio"]
+        tsig = (bool(t.get("enabled", True)), str(t.get("host", "127.0.0.1")),
+                int(t.get("port", 3333)), float(t.get("rate_hz", 30)))
+        if tsig != self._tuio_sig:
+            self._tuio_sig = tsig
+            try:
+                self.tuio.close()
+            except Exception:
+                pass
+            self.tuio = TuioSender(tsig[1], tsig[2], enabled=tsig[0])
+            self._tuio_interval = 1.0 / max(1.0, tsig[3])
+
+    def _sync_tracker_settings(self) -> None:
+        t = self.cfg["tracker"]
+        s = self.tracker.cfg
+        s.cluster_gap_m = float(t.get("cluster_gap_m", s.cluster_gap_m))
+        s.min_points = int(t.get("min_points", s.min_points))
+        s.max_extent_m = float(t.get("max_extent_m", s.max_extent_m))
+        s.gate_m = float(t.get("gate_m", s.gate_m))
+        s.smooth_pos = float(t.get("smooth_pos", s.smooth_pos))
+        s.smooth_vel = float(t.get("smooth_vel", s.smooth_vel))
+        s.enter_revs = int(t.get("enter_revs", s.enter_revs))
+        s.exit_revs = int(t.get("exit_revs", s.exit_revs))
+        s.max_tracks = int(t.get("max_tracks", s.max_tracks))
+
+    def _sync_filter(self) -> None:
+        f = self.cfg["filter"]
+        sig = (int(f.get("bins", 720)), int(f.get("learn_revs", 3)))
+        if sig == self._filter_sig:
+            return
+        self._filter_sig = sig
+        self.background = BackgroundModel(sig[0], float(f.get("tol_m", 0.12)), sig[1])
+        if f.get("enabled", True) and f.get("auto_learn", True):
+            self._learn_until = time.perf_counter() + float(f.get("learn_seconds", 4.0))
+            self.background.learning = True
+
     def _run_tracker(self, cropped_rev, now: float) -> None:
         if not self.cfg["tracker"].get("enabled", True):
             self.tracks = []
@@ -756,11 +821,17 @@ class App:
     def _render_frame(self, snap) -> None:
         cfg = self.cfg
         style = cfg["style"]
+        spout_on = bool(cfg["spout"].get("enabled", True))
+        self.spout_beauty.set_enabled(spout_on)
+        self.spout_mask.set_enabled(spout_on and bool(cfg["mask"].get("enabled", True)))
 
         cropped_rev = self._crop(snap.rev_points)
         cropped_live = self._crop(snap.live_points)
         now = time.perf_counter()
         self._sync_stage(now)
+        self._sync_outputs()
+        self._sync_tracker_settings()
+        self._sync_filter()
         flt = cfg["filter"]
         new_rev = snap.rev_index != self._rev_idx
         if new_rev:
@@ -912,7 +983,8 @@ class App:
             self.frame_count += 1
 
             if snapshot_at and self.frame_count >= snapshot_at:
-                self.save_snapshot(self.args.snapshot or "snapshot.png")
+                if self.args.snapshot:
+                    self.save_snapshot(self.args.snapshot)
                 break
 
             remaining = target_dt - (time.perf_counter() - now)
@@ -1032,7 +1104,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--snapshot", default="", help="simpan satu frame PNG lalu keluar")
     p.add_argument("--frames", type=int, default=0, help="jumlah frame sebelum snapshot")
     p.add_argument("--debug", action="store_true")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.snapshot and not args.frames:
+        args.frames = 120
+    return args
 
 
 def main(argv=None) -> int:

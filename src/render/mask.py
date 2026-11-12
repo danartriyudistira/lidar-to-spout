@@ -4,7 +4,7 @@ from __future__ import annotations
 import moderngl
 import numpy as np
 
-from .gl import (FS_COMPOSITE, VS_TEX, FullscreenQuad, PingPong, PointBatch)
+from .gl import FS_COMPOSITE, VS_TEX, PingPong, PointBatch
 
 
 class MaskRenderer:

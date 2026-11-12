@@ -39,7 +39,6 @@ def main() -> int:
     revs: list[int] = []
     prev = None
     zero_packets = 0
-    dists: list[float] = []
 
     t0 = time.time()
     print(f"merekam {args.port} @ {args.baud} selama {args.seconds:.1f} s ...")

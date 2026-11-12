@@ -23,19 +23,23 @@ class SpoutOutput:
             self.error = "SpoutGL tidak terpasang (pip install SpoutGL)"
             self.enabled = False
 
-    def _ensure(self) -> None:
+    def _ensure(self) -> bool:
         if self._sender is None:
             self._sender = SpoutGL.SpoutSender()
             self._sender.setSenderName(self.name)
             ok = self._sender.createOpenGL()
             if not ok:
                 self.error = f"Spout sender '{self.name}' gagal dibuat"
+                self._sender = None
+                return False
+        return True
 
     def send(self, fbo: moderngl.Framebuffer) -> bool:
         if not self.enabled:
             return False
         try:
-            self._ensure()
+            if not self._ensure():
+                return False
             ok = self._sender.sendFbo(fbo.glo, self.w, self.h, self.invert)
             if not ok:
                 self._fails += 1
@@ -51,6 +55,16 @@ class SpoutOutput:
             self.w, self.h = width, height
             self.release()
             self._ensure()
+
+    def set_enabled(self, value: bool) -> None:
+        value = bool(value) and SpoutGL is not None
+        if value == self.enabled:
+            return
+        self.enabled = value
+        if value:
+            self._ensure()
+        else:
+            self.release()
 
     def release(self) -> None:
         if self._sender is not None:

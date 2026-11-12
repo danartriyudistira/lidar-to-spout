@@ -228,6 +228,19 @@ tools/
   tuio_listen_test.py    dengarkan bundle TUIO 2Dcur
   debug_background.py    analisa background model dari rekaman
   smoke_all.py           uji gabungan Spout + OSC + TUIO dalam satu sesi
+  panel_harness.py       render semua section panel (deteksi error UI)
+  input_harness.py       simulasi klik/drag editor area & marker LiDAR
+tests/
+  test_core.py           unit test protokol, stage, area, tracker, background, OSC/TUIO
+```
+
+Uji cepat sebelum dipakai:
+
+```bat
+python tests\test_core.py
+python tools\panel_harness.py
+python tools\input_harness.py
+python tools\smoke_all.py --replay data\demo_room.bin
 ```
 
 Cek cepat kesehatan sistem:

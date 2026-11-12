@@ -1,7 +1,6 @@
 """Model area / trigger zone (rectangle & polygon) + penyimpanan ke config."""
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 
 PALETTE = [
@@ -106,13 +105,16 @@ class Area:
     @staticmethod
     def from_dict(d: dict) -> "Area":
         pts = [[float(p[0]), float(p[1])] for p in d.get("points", []) if len(p) >= 2]
+        raw_color = [float(c) for c in d.get("color", PALETTE[0])][:3]
+        while len(raw_color) < 3:
+            raw_color.append(PALETTE[0][len(raw_color)])
         return Area(
             id=int(d.get("id", 0)),
             name=str(d.get("name", "Area")),
             type=str(d.get("type", "poly")),
             points=pts,
             enabled=bool(d.get("enabled", True)),
-            color=[float(c) for c in d.get("color", PALETTE[0])][:3] or list(PALETTE[0]),
+            color=raw_color,
             overlap=bool(d.get("overlap", False)),
         )
 

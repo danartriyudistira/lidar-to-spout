@@ -1,7 +1,7 @@
 """Clustering titik scan menjadi objek (kaki) dan tracking antar revolusi."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from math import hypot
 
 
@@ -136,6 +136,7 @@ class FootTracker:
                 tr.confirmed = True
 
         # cluster baru
+        new_tids: set[int] = set()
         for ci, c in enumerate(clusters):
             if ci in used:
                 continue
@@ -147,9 +148,12 @@ class FootTracker:
                 id=tid, x=c.x, y=c.y, size=c.size, hits=1, misses=0,
                 confirmed=cfg.enter_revs <= 1, age=dt,
             )
+            new_tids.add(tid)
 
-        # track yang tidak dapat pasangan
+        # track lama yang tidak dapat pasangan
         for tid in list(self._tracks.keys()):
+            if tid in new_tids:
+                continue
             tr = self._tracks[tid]
             if tid not in matched_tids:
                 tr.misses += 1

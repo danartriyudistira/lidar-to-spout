@@ -1,9 +1,8 @@
 import sys
 from pathlib import Path
-from math import hypot
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from lidar.protocol import PacketParser, packet_points, packet_start_angle
+from lidar.protocol import PacketParser, packet_points
 from lidar.background import BackgroundModel
 
 d = Path("data/live_rec.bin").read_bytes()
