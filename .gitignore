@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Build / packaging
+build/
+dist/
+*.spec.bak
+LidarToSpout.spec
+
+# Output & sementara
+snapshot*.png
+*.log
+presets/tmp/
+
+# Referensi pihak ketiga (unduhan manual, tidak ikut repo)
+Lidar-main.zip
+Lidar-Mapping-main.zip
+Lidar-Mapping-main/
+LidarView-5.3.0.msi
+EAI-X3-X3ProLidar-main/
+LidarTracker-master/
+*.tox
+*.msi
+*.zip
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# Konfigurasi lokal (kalibrasi venue)
+config.json
+
