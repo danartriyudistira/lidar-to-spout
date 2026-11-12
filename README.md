@@ -36,10 +36,18 @@ atau langsung:
 python src\app.py
 ```
 
-Tanpa hardware (pakai rekaman):
+Tanpa hardware (pakai rekaman demo sintetis):
 
 ```bat
 run_replay.bat
+```
+
+Rekaman demo (`data/demo_room.bin`) adalah ruangan sintetis 8×4 m dengan dua "orang"
+berjalan — dibuat oleh `tools/make_demo.py`. Untuk merekam scan asli:
+
+```bat
+python tools\record.py --seconds 10 --out data\scan_saya.bin
+python src\app.py --replay data\scan_saya.bin
 ```
 
 Opsi penting:
@@ -48,7 +56,7 @@ Opsi penting:
 |---|---|
 | `--port COM4` | ganti port serial |
 | `--baud 115200` | baud rate |
-| `--replay data\live_rec.bin --speed 1` | putar rekaman, tidak memegang COM4 |
+| `--replay data\demo_room.bin --speed 1` | putar rekaman, tidak memegang COM4 |
 | `--headless` | tanpa window (Spout tetap jalan, hemat GPU) |
 | `--no-spout` / `--no-osc` / `--no-tuio` | matikan output tertentu |
 | `--width 3840 --height 1080 --fps 60` | ukuran kanvas & target fps |
@@ -214,6 +222,7 @@ src/
   ui/panel.py            panel imgui
 tools/
   record.py              rekam serial ke .bin + statistik
+  make_demo.py           buat rekaman demo sintetis (tanpa hardware)
   spout_receiver_test.py cek sender Spout benar-benar mengirim frame
   osc_listen_test.py     dengarkan pesan OSC
   tuio_listen_test.py    dengarkan bundle TUIO 2Dcur

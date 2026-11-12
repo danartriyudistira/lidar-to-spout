@@ -36,3 +36,8 @@ desktop.ini
 # Konfigurasi lokal (kalibrasi venue)
 config.json
 
+
+# Rekaman scan pribadi (gunakan tools/record.py untuk membuat sendiri)
+data/live_rec.bin
+data/scan_*.bin
+
